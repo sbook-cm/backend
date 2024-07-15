@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -87,8 +88,13 @@ func userFromLogin(email string, password string) (User, bool) {
 	return user, true
 }
 func connectDatabase() *mongo.Client {
-	// mongodb://mongo:PadssscQGFKrBYnwYnSkaLElshJgSUFM@monorail.proxy.rlwy.net:36478
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+	var url string
+	if os.Getenv("ENV") == "dev" {
+		url = "mongodb://localhost:27017"
+	} else {
+		url = "mongodb://mongo:PadssscQGFKrBYnwYnSkaLElshJgSUFM@monorail.proxy.rlwy.net:36478"
+	}
+	client, err := mongo.NewClient(options.Client().ApplyURI(url))
 	if err != nil {
 		log.Fatal(err)
 	}
