@@ -23,12 +23,14 @@ func connectDatabase() *mongo.Client {
 		url = "mongodb://localhost:27017"
 	} else {
 		url = "mongodb://mongo:PadssscQGFKrBYnwYnSkaLElshJgSUFM@monorail.proxy.rlwy.net:36478"
+		backend.FRONTEND = "https://sbook-cm.web.app"
 	}
-	client, err := mongo.NewClient(options.Client().ApplyURI(url))
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = client.Connect(context.TODO())
+	backend.FRONTEND = "http://localhost:5173"
+	url = "mongodb+srv://ken-morel:amemimy114865009@sbook.cxtildr.mongodb.net/?retryWrites=true&w=majority&appName=sbook"
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	opts := options.Client().ApplyURI(url).SetServerAPIOptions(serverAPI)
+	// Create a new client and connect to the server
+	client, err := mongo.Connect(context.TODO(), opts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,14 +42,8 @@ func main() {
 	backend.SetDatabase(client.Database("test"))
 	defer client.Disconnect(context.TODO())
 
-	// r.HandleFunc("/users/{userid}", func(w http.ResponseWriter, r *http.Request) {
-	// 	vars := mux.Vars(r)
-	// 	userID := vars["userid"]
-	// 	fmt.Fprintf(w, "User ID: %s", userID)
-	// })
-
 	http.Handle("/", backend.Route())
 
-	log.Println("Server is running on http://localhost:8765")
-	log.Fatal(http.ListenAndServe(":8765", nil))
+	log.Println("Server is running on http://localhost:1234")
+	log.Fatal(http.ListenAndServe(":1234", nil))
 }

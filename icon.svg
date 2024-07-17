@@ -1,0 +1,12 @@
+<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+ <!-- Created with SVG-edit - https://github.com/SVG-Edit/svgedit-->
+ <title>sbook.svg</title>
+ <g class="layer">
+  <title>Layer 1</title>
+  <ellipse cx="250" cy="250" fill="rgb(76, 79, 77)" id="svg_2" rx="215" ry="215" stroke="#ddd" stroke-width="15"/>
+  <!-- the down bars -->
+  <path d="M229 457 L229 267 L202 267 L202 322 L110 403 A 240 240 30 0 0 228 457" fill="rgb(162, 70, 251)" stroke-width="0"/>
+  <!-- the right arc -->
+  <path d="M229 381 A 25 25 180 0 0 229 139" fill="#0000" stroke="#ddd" stroke-width="15"/>
+ </g>
+</svg>

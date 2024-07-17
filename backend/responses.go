@@ -15,3 +15,15 @@ type UserResponse struct {
 
 	User User `json:"user"`
 }
+
+type SigninResponse struct {
+	UserResponse
+
+	Sessionid string `json:"sessionid"`
+}
+
+type EventsResponse struct {
+	_Response
+
+	Events []Event `json:"events"`
+}

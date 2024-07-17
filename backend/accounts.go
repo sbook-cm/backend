@@ -2,18 +2,19 @@ package backend
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	// "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 var db *mongo.Database
 
-func getAllUsers() (users []User) {
+func getAllUsers() []User {
+	var users []User
 	users_collection := db.Collection("users")
-
 	cursor, err := users_collection.Find(context.TODO(), bson.D{})
 	if err != nil {
 		log.Fatal(err)
@@ -27,42 +28,37 @@ func getAllUsers() (users []User) {
 	return users
 }
 
-func getUserByID(userID string) (User, bool) {
-	var user User
+func getUserByUsername(userName string) (User, bool) {
 	users_collection := db.Collection("users")
-	objID, _ := primitive.ObjectIDFromHex(userID)
-
-	cursor, err := users_collection.Find(context.TODO(), bson.D{})
+	var user User
+	err := users_collection.FindOne(context.TODO(), bson.M{
+		"username": userName,
+	}).Decode(&user)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer cursor.Close(context.TODO())
-
-	for cursor.Next(context.TODO()) {
-		cursor.Decode(&user)
-		if user.ID == objID {
-			return user, false
+		if err == mongo.ErrNoDocuments {
+			return user, true
+		} else {
+			log.Fatal(err)
 		}
 	}
-	return user, true
+	return user, false
 }
+
 func userFromLogin(email string, password string) (User, bool) {
 	users_collection := db.Collection("users")
 	var user User
 	cursor, err := users_collection.Find(context.TODO(), bson.D{})
 	if err != nil {
-		log.Fatal(err)
+		return user, true
 	}
 	defer cursor.Close(context.TODO())
-
 	for cursor.Next(context.TODO()) {
+		//cursor.Decode(&user)
 		cursor.Decode(&user)
-		// fmt.Println("mapping:", user.Contact.Email, "to", email, user.Contact.Email == email)
-		// fmt.Println("mapping:", user.Security.Password, "to", password, user.Security.Password == password)
-		if (user.Contact.Email == email) && (user.Security.Password == password) {
+		fmt.Println(user)
+		if user.Security.Password == password && user.Contact.Email == email {
 			return user, false
 		}
-		// fmt.Println("match", (user.Contact.Email == email), (user.Security.Password == password), (user.Contact.Email == email) && (user.Security.Password == password))
 	}
 	return user, true
 }
