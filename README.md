@@ -6,16 +6,13 @@
 |____/|_.__/ \___/ \___/|_|\_\
 ```
 
-Hy, everyone. I am @ken-morel, and here to present you the lates development version of `sbook` back end.
+I worked with python and django to build the first version, but now switched entirely to go!
 
-What is the backend?
+This does simple tasks:
 
-the backend Sbook is responsible for interferring with the MongoDB Database providing a REST API for [sbook front end](https://github.com/sbook-cm/frontend) Hope you like It.
+- loging in users
+- creating accounts
+- managing the database
 
-It uses:
+and all that sepperately from  the react frontend.
 
--   Go language
-    
--   gorilla mux
-    
--   gorilla scheme
