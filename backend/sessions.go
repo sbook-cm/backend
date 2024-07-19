@@ -16,14 +16,15 @@ type FlashMessage struct {
 }
 
 type Session struct {
-	Username  string                 `json:"username" bson:"username"`
-	Sessionid string                 `json:"sessionid" bson:"sessionid"`
-	Time      time.Time              `json:"time" bson:"time"`
-	Data      map[string]interface{} `json:"data" bson:"data"`
-	Flashes   []FlashMessage         `json:"flashes" bson:"flashes"`
+	Userid       string                 `json:"userid" bson:"userid"`
+	Sessionid    string                 `json:"sessionid" bson:"sessionid"`
+	Oldsessionid string                 `bson:"oldsessionid"`
+	Time         time.Time              `json:"time" bson:"time"`
+	Data         map[string]interface{} `json:"data" bson:"data"`
+	Flashes      []FlashMessage         `json:"flashes" bson:"flashes"`
 }
 
-func generateUniqueSessionKey(username string) string {
+func generateUniqueSessionKey(userid string) string {
 	var key string
 	// for {
 	b := make([]byte, 8)
@@ -31,7 +32,7 @@ func generateUniqueSessionKey(username string) string {
 	if err != nil {
 		panic(err)
 	}
-	key = username + ":" + hex.EncodeToString(b)
+	key = userid + ":" + hex.EncodeToString(b)
 	// err := sessions.FindOne(context.Background(), bson.M{
 	// 	"sessionid": key,
 	// }).Decode(&sess)
@@ -41,14 +42,16 @@ func generateUniqueSessionKey(username string) string {
 	// }
 }
 
-func createSession(username string) Session {
+func createSession(userid string) Session {
 	sessions := db.Collection("sessions")
 	var data map[string]interface{}
+	sessionid := generateUniqueSessionKey(userid)
 	session := Session{
-		Username:  username,
-		Sessionid: generateUniqueSessionKey(username),
-		Time:      time.Now(),
-		Data:      data,
+		Userid:       userid,
+		Sessionid:    sessionid,
+		Oldsessionid: sessionid,
+		Time:         time.Now(),
+		Data:         data,
 	}
 	_, err := sessions.InsertOne(context.Background(), session)
 	if err != nil {
@@ -56,9 +59,23 @@ func createSession(username string) Session {
 	}
 	createEvent("session-creation", EventParams{
 		"sessionid": session.Sessionid,
-		"username":  username,
+		"userid":    userid,
 	})
 	return session
+}
+
+func deleteSession(session Session) error {
+	sessions := db.Collection("sessions")
+	filter := bson.M{"_id": "myid"}
+	_, err := sessions.DeleteOne(context.TODO(), filter)
+	if err != nil {
+		return err
+	}
+	createEvent("session-deletion", EventParams{
+		"sessionid": session.Sessionid,
+		"userid":    session.Userid,
+	})
+	return nil
 }
 
 func getSession(sessionid string) (Session, error) {
@@ -67,6 +84,11 @@ func getSession(sessionid string) (Session, error) {
 	err := sessions.FindOne(context.Background(), bson.M{
 		"sessionid": sessionid,
 	}).Decode(&session)
+	if err != nil {
+		err = sessions.FindOne(context.Background(), bson.M{
+			"oldsessionid": sessionid,
+		}).Decode(&session)
+	}
 	return session, err
 }
 
@@ -79,11 +101,20 @@ func saveSession(session Session) error {
 			"sessionid": session.Sessionid,
 		},
 		bson.M{
-			"$set": bson.M{
-				"data": session.Data,
-			},
+			"$set": session,
 		},
 	)
 
 	return err
+}
+
+func getNewerSessionID(session Session, oldid string) (string, error) {
+	if session.Sessionid == oldid {
+		session.Oldsessionid = session.Sessionid
+		session.Sessionid = generateUniqueSessionKey(session.Userid)
+		err := saveSession(session)
+		return session.Sessionid, err
+	} else {
+		return session.Sessionid, nil
+	}
 }

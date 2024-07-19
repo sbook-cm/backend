@@ -19,9 +19,10 @@ func do_users(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", FRONTEND)
 
 	err := json.NewEncoder(w).Encode(UsersResponse{
-		_Response: _Response{
-			Ok:     true,
-			Status: 200,
+		_SResponse: _SResponse{
+			Ok:        true,
+			Status:    200,
+			Sessionid: "",
 		},
 		Users: getAllUsers(),
 	})
@@ -38,33 +39,37 @@ func do_current_user(w http.ResponseWriter, r *http.Request) {
 
 	var users []User
 	var user User
-	var herr bool
-	session, err := getSession(mux.Vars(r)["sessionid"])
+	oldsessionid := mux.Vars(r)["sessionid"]
+	session, err := getSession(oldsessionid)
 	if err != nil {
 		json.NewEncoder(w).Encode(UsersResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 402,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    402,
+				Sessionid: "",
 			},
 			Users: users,
 		})
 		return
 	}
-	user, herr = getUserByUsername(session.Username)
-	if herr {
+	newsessionid, _ := getNewerSessionID(session, oldsessionid)
+	user, err = getUserByUserID(session.Userid)
+	if err != nil {
 		json.NewEncoder(w).Encode(UsersResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 404,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    404,
+				Sessionid: newsessionid,
 			},
 			Users: users,
 		})
 		return
 	}
 	json.NewEncoder(w).Encode(UserResponse{
-		_Response: _Response{
-			Ok:     true,
-			Status: 200,
+		_SResponse: _SResponse{
+			Ok:        true,
+			Status:    200,
+			Sessionid: newsessionid,
 		},
 		User: user,
 	})
@@ -82,33 +87,37 @@ func do_signin(w http.ResponseWriter, r *http.Request) {
 	var users []User
 	if err := r.ParseForm(); err != nil {
 		json.NewEncoder(w).Encode(UsersResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 403,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    403,
+				Sessionid: "",
 			},
 			Users: users,
 		})
 		return
 	}
 	var form LoginForm
+	var user User
 	err := decoder.Decode(&form, r.Form)
 	if err != nil {
 		json.NewEncoder(w).Encode(UsersResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 403,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    403,
+				Sessionid: "",
 			},
 			Users: users,
 		})
 		return
 	}
-	user, herr := userFromLogin(form.Email, form.Password)
+	user, err = userFromLogin(form.Email, form.Password)
 	fmt.Println(" sign in as", user)
-	if herr {
+	if err != nil {
 		json.NewEncoder(w).Encode(UsersResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 404,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    404,
+				Sessionid: "",
 			},
 			Users: users,
 		})
@@ -120,41 +129,39 @@ func do_signin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(SigninResponse{
-		UserResponse: UserResponse{
-			_Response: _Response{
-				Ok:     true,
-				Status: 200,
-			},
-			User: user,
+		_SResponse: _SResponse{
+			Ok:        true,
+			Status:    200,
+			Sessionid: session.Sessionid,
 		},
-		Sessionid: session.Sessionid,
+		User: user,
 	})
 }
 
-func do_username(w http.ResponseWriter, r *http.Request) {
-	userName := mux.Vars(r)["username"]
+func do_userid(w http.ResponseWriter, r *http.Request) {
+	userid := mux.Vars(r)["userid"]
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", FRONTEND)
 
 	var users []User
-	var user User
-	var herr bool
-	user, herr = getUserByUsername(userName)
+	user, err := getUserByUserID(userid)
 	fmt.Println("got:", user)
-	if herr {
+	if err != nil {
 		json.NewEncoder(w).Encode(UsersResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 404,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    404,
+				Sessionid: "",
 			},
 			Users: users,
 		})
 		return
 	}
-	err := json.NewEncoder(w).Encode(UserResponse{
-		_Response: _Response{
-			Ok:     true,
-			Status: 200,
+	err = json.NewEncoder(w).Encode(UserResponse{
+		_SResponse: _SResponse{
+			Ok:        true,
+			Status:    200,
+			Sessionid: "",
 		},
 		User: user,
 	})
@@ -166,38 +173,42 @@ func do_username(w http.ResponseWriter, r *http.Request) {
 
 func do_latest_events(w http.ResponseWriter, r *http.Request) {
 	var user User
-	var herr bool
 	var form LatestEventsForm
 	fmt.Println("Asking for latest events user")
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", FRONTEND)
 	if err := r.ParseForm(); err != nil {
 		json.NewEncoder(w).Encode(EventsResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 403,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    403,
+				Sessionid: "",
 			},
 			Events: []Event{},
 		})
 		return
 	}
-	session, err := getSession(mux.Vars(r)["sessionid"])
+	oldsessionid := mux.Vars(r)["sessionid"]
+	session, err := getSession(oldsessionid)
 	if err != nil {
 		json.NewEncoder(w).Encode(EventsResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 402,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    402,
+				Sessionid: "",
 			},
 			Events: []Event{},
 		})
 		return
 	}
-	user, herr = getUserByUsername(session.Username)
-	if herr {
+	newsessionid, _ := getNewerSessionID(session, oldsessionid)
+	user, err = getUserByUserID(session.Userid)
+	if err != nil {
 		json.NewEncoder(w).Encode(EventsResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 404,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    404,
+				Sessionid: newsessionid,
 			},
 			Events: []Event{},
 		})
@@ -206,9 +217,10 @@ func do_latest_events(w http.ResponseWriter, r *http.Request) {
 	err = decoder.Decode(&form, r.Form)
 	if err != nil {
 		json.NewEncoder(w).Encode(EventsResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 403,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    403,
+				Sessionid: newsessionid,
 			},
 			Events: []Event{},
 		})
@@ -217,24 +229,26 @@ func do_latest_events(w http.ResponseWriter, r *http.Request) {
 	events, eerr := getLatestEventsForUser(user, form.Number)
 	if eerr != nil {
 		json.NewEncoder(w).Encode(EventsResponse{
-			_Response: _Response{
-				Ok:     false,
-				Status: 500,
+			_SResponse: _SResponse{
+				Ok:        false,
+				Status:    500,
+				Sessionid: newsessionid,
 			},
 			Events: []Event{},
 		})
 		return
 	}
 	json.NewEncoder(w).Encode(EventsResponse{
-		_Response: _Response{
-			Ok:     true,
-			Status: 200,
+		_SResponse: _SResponse{
+			Ok:        true,
+			Status:    200,
+			Sessionid: newsessionid,
 		},
 		Events: events,
 	})
 }
 
-func do_username_profile(w http.ResponseWriter, r *http.Request) {
+func do_userid_profile(w http.ResponseWriter, r *http.Request) {
 	userId := mux.Vars(r)["userid"]
 	if isValidHex(userId) {
 		http.ServeFile(w, r, "./profile/user/"+userId+".png")
@@ -253,4 +267,27 @@ func isValidHex(s string) bool {
 		}
 	}
 	return true
+}
+
+func do_logout(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", FRONTEND)
+	session, err := getSession(mux.Vars(r)["sessionid"])
+	if err != nil {
+		json.NewEncoder(w).Encode(_Response{
+			Ok:     false,
+			Status: 500,
+		})
+		return
+	}
+	err = deleteSession(session)
+	if err != nil {
+		http.Error(w, "Wrong user id", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(_Response{
+		Ok:     true,
+		Status: 200,
+	})
 }

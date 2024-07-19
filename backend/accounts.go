@@ -28,28 +28,28 @@ func getAllUsers() []User {
 	return users
 }
 
-func getUserByUsername(userName string) (User, bool) {
+func getUserByUserID(userId string) (User, error) {
 	users_collection := db.Collection("users")
 	var user User
 	err := users_collection.FindOne(context.TODO(), bson.M{
-		"username": userName,
+		"_id": userId,
 	}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return user, true
+			return user, err
 		} else {
 			log.Fatal(err)
 		}
 	}
-	return user, false
+	return user, nil
 }
 
-func userFromLogin(email string, password string) (User, bool) {
+func userFromLogin(email string, password string) (User, error) {
 	users_collection := db.Collection("users")
 	var user User
 	cursor, err := users_collection.Find(context.TODO(), bson.D{})
 	if err != nil {
-		return user, true
+		return user, err
 	}
 	defer cursor.Close(context.TODO())
 	for cursor.Next(context.TODO()) {
@@ -57,10 +57,10 @@ func userFromLogin(email string, password string) (User, bool) {
 		cursor.Decode(&user)
 		fmt.Println(user)
 		if user.Security.Password == password && user.Contact.Email == email {
-			return user, false
+			return user, nil
 		}
 	}
-	return user, true
+	return user, mongo.ErrNoDocuments
 }
 
 func SetDatabase(db2 *mongo.Database) {

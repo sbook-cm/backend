@@ -22,7 +22,7 @@ func connectDatabase() *mongo.Client {
 	if os.Getenv("ENV") == "dev" {
 		url = "mongodb://localhost:27017"
 	} else {
-		url = "mongodb://mongo:PadssscQGFKrBYnwYnSkaLElshJgSUFM@monorail.proxy.rlwy.net:36478"
+		url = "mongodb://mongo:PadssscQGFKrBYnwYnSkaLElshJgSUFM@monorail.proxy.rlwy.net:36478"cd
 		backend.FRONTEND = "https://sbook-cm.web.app"
 	}
 	backend.FRONTEND = "http://localhost:5173"
