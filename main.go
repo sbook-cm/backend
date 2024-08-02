@@ -19,14 +19,8 @@ import (
 
 func connectDatabase() *mongo.Client {
 	var url string
-	if os.Getenv("ENV") == "dev" {
-		url = "mongodb://localhost:27017"
-	} else {
-		url = "mongodb://mongo:PadssscQGFKrBYnwYnSkaLElshJgSUFM@monorail.proxy.rlwy.net:36478"cd
-		backend.FRONTEND = "https://sbook-cm.web.app"
-	}
+	url = os.Getenv("MONGO_URL")
 	backend.FRONTEND = "http://localhost:5173"
-	url = "mongodb+srv://ken-morel:amemimy114865009@sbook.cxtildr.mongodb.net/?retryWrites=true&w=majority&appName=sbook"
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(url).SetServerAPIOptions(serverAPI)
 	// Create a new client and connect to the server
