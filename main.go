@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -20,6 +21,7 @@ import (
 func connectDatabase() *mongo.Client {
 	var url string
 	url = os.Getenv("MONGO_URL")
+	fmt.Println("connecting to " + url)
 	backend.FRONTEND = "http://localhost:5173"
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
 	opts := options.Client().ApplyURI(url).SetServerAPIOptions(serverAPI)
