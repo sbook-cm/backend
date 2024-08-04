@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"go.mongodb.org/mongo-driver/bson"
-	// "go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -29,10 +29,14 @@ func getAllUsers() []User {
 }
 
 func getUserByUserID(userId string) (User, error) {
-	users_collection := db.Collection("users")
 	var user User
-	err := users_collection.FindOne(context.TODO(), bson.M{
-		"_id": userId,
+	users_collection := db.Collection("users")
+	objectID, err := primitive.ObjectIDFromHex(userId)
+	if err != nil {
+		return user, err
+	}
+	err = users_collection.FindOne(context.TODO(), bson.M{
+		"_id": objectID,
 	}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -44,7 +48,7 @@ func getUserByUserID(userId string) (User, error) {
 	return user, nil
 }
 
-func userFromLogin(email string, password string) (User, error) {
+func userFromEmail(email string) (User, error) {
 	users_collection := db.Collection("users")
 	var user User
 	cursor, err := users_collection.Find(context.TODO(), bson.D{})
@@ -56,7 +60,7 @@ func userFromLogin(email string, password string) (User, error) {
 		//cursor.Decode(&user)
 		cursor.Decode(&user)
 		fmt.Println(user)
-		if user.Security.Password == password && user.Contact.Email == email {
+		if user.Contact.Email == email {
 			return user, nil
 		}
 	}

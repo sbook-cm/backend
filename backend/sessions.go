@@ -15,15 +15,6 @@ type FlashMessage struct {
 	Message string `json:"message" bson:"message"`
 }
 
-type Session struct {
-	Userid       string                 `json:"userid" bson:"userid"`
-	Sessionid    string                 `json:"sessionid" bson:"sessionid"`
-	Oldsessionid string                 `bson:"oldsessionid"`
-	Time         time.Time              `json:"time" bson:"time"`
-	Data         map[string]interface{} `json:"data" bson:"data"`
-	Flashes      []FlashMessage         `json:"flashes" bson:"flashes"`
-}
-
 func generateUniqueSessionKey(userid string) string {
 	var key string
 	// for {
@@ -47,11 +38,10 @@ func createSession(userid string) Session {
 	var data map[string]interface{}
 	sessionid := generateUniqueSessionKey(userid)
 	session := Session{
-		Userid:       userid,
-		Sessionid:    sessionid,
-		Oldsessionid: sessionid,
-		Time:         time.Now(),
-		Data:         data,
+		Userid:    userid,
+		Sessionid: sessionid,
+		Time:      time.Now(),
+		Data:      data,
 	}
 	_, err := sessions.InsertOne(context.Background(), session)
 	if err != nil {
@@ -110,7 +100,6 @@ func saveSession(session Session) error {
 
 func getNewerSessionID(session Session, oldid string) (string, error) {
 	if session.Sessionid == oldid {
-		session.Oldsessionid = session.Sessionid
 		session.Sessionid = generateUniqueSessionKey(session.Userid)
 		err := saveSession(session)
 		return session.Sessionid, err
